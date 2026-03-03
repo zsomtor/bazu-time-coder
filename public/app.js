@@ -14,6 +14,7 @@
   let pusherChannel = null;
   let tcInterval = null;
   let manualTcFocused = false;
+  let formTimecode = null; // captured when user clicks into Name/Comment fields
 
   // --- DOM refs ---
   const projectListView = document.getElementById('project-list-view');
@@ -86,6 +87,30 @@
   manualTimecodeInput.addEventListener('blur', () => {
     manualTcFocused = false;
   });
+
+  // --- Form timecode capture ---
+  // Snapshot timecode when user first clicks into Name or Comment,
+  // so the marker time = when they saw the moment, not when they finish typing.
+  function onFormFieldFocus() {
+    if (!formTimecode) {
+      formTimecode = captureTimecode();
+    }
+  }
+
+  function onFormFieldBlur() {
+    // Small delay so tabbing between Name→Comment doesn't reset the capture
+    setTimeout(() => {
+      if (document.activeElement !== markerNameInput &&
+          document.activeElement !== markerCommentInput) {
+        formTimecode = null;
+      }
+    }, 150);
+  }
+
+  markerNameInput.addEventListener('focus', onFormFieldFocus);
+  markerCommentInput.addEventListener('focus', onFormFieldFocus);
+  markerNameInput.addEventListener('blur', onFormFieldBlur);
+  markerCommentInput.addEventListener('blur', onFormFieldBlur);
 
   // --- API helpers ---
   async function api(path, options = {}) {
@@ -265,10 +290,10 @@
   });
 
   // --- Adding markers ---
-  async function addMarker(name, color, comment) {
+  async function addMarker(name, color, comment, overrideTimecode) {
     if (!currentProject) return;
 
-    const timecode = captureTimecode();
+    const timecode = overrideTimecode || captureTimecode();
     const markerData = {
       project_id: currentProject.id,
       timecode: timecode,
@@ -298,14 +323,18 @@
   }
 
   addMarkerBtn.addEventListener('click', () => {
-    addMarker(markerNameInput.value.trim(), selectedColor, markerCommentInput.value.trim());
+    const tc = formTimecode;
+    formTimecode = null;
+    addMarker(markerNameInput.value.trim(), selectedColor, markerCommentInput.value.trim(), tc);
   });
 
   // Enter key on comment field
   markerCommentInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      addMarker(markerNameInput.value.trim(), selectedColor, markerCommentInput.value.trim());
+      const tc = formTimecode;
+      formTimecode = null;
+      addMarker(markerNameInput.value.trim(), selectedColor, markerCommentInput.value.trim(), tc);
     }
   });
 
