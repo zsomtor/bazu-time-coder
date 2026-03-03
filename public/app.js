@@ -258,21 +258,20 @@
 
   async function openProject(id) {
     try {
-      currentProject = await api(`/projects/${id}`);
-      markers = await api(`/markers?projectId=${id}`);
+      const [project, projectMarkers, clItems] = await Promise.all([
+        api(`/projects/${id}`),
+        api(`/markers?projectId=${id}`),
+        api(`/checklist/state?projectId=${id}`).catch(() => [])
+      ]);
+
+      currentProject = project;
+      markers = projectMarkers;
       lastMarker = markers.length > 0 ? markers[0] : null;
+      checklistItems = clItems;
 
       projectNameHeader.textContent = currentProject.name;
       renderShortcutButtons();
       renderMarkers();
-
-      // Load checklist state for this project
-      try {
-        checklistItems = await api(`/checklist/state?projectId=${id}`);
-      } catch (err) {
-        console.warn('Checklist load failed:', err);
-        checklistItems = [];
-      }
       renderChecklist();
 
       projectListView.classList.add('hidden');
@@ -757,27 +756,31 @@
       const oldIds = checklistTemplate.map(t => t.id).filter(Boolean);
       const newIds = newTemplate.map(t => t.id).filter(Boolean);
 
+      const templateOps = [];
+
       // Delete removed items
       for (const oldId of oldIds) {
         if (!newIds.includes(oldId)) {
-          await api(`/checklist/template/${oldId}`, { method: 'DELETE' });
+          templateOps.push(api(`/checklist/template/${oldId}`, { method: 'DELETE' }));
         }
       }
 
       // Update existing + create new
       for (const item of newTemplate) {
         if (item.id) {
-          await api(`/checklist/template/${item.id}`, {
+          templateOps.push(api(`/checklist/template/${item.id}`, {
             method: 'PUT',
             body: { label: item.label, drops_marker: item.drops_marker, color: item.color, sort_order: item.sort_order }
-          });
+          }));
         } else {
-          await api('/checklist/template', {
+          templateOps.push(api('/checklist/template', {
             method: 'POST',
             body: { label: item.label, drops_marker: item.drops_marker, color: item.color }
-          });
+          }));
         }
       }
+
+      await Promise.all(templateOps);
 
       // Reload checklist for the current project
       try {

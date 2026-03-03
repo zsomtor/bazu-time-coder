@@ -241,7 +241,7 @@ button:hover { opacity: 0.85; }
   border-radius: 12px;
   letter-spacing: 2px;
   color: #ff8c00;
-  overflow: hidden;
+  flex-shrink: 0;
 }
 
 /* MANUAL TC */
@@ -249,6 +249,7 @@ button:hover { opacity: 0.85; }
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-shrink: 0;
 }
 
 .manual-tc-row label {
@@ -278,6 +279,7 @@ button:hover { opacity: 0.85; }
   display: flex;
   flex-direction: column;
   gap: 10px;
+  flex-shrink: 0;
 }
 
 .form-row input {
@@ -327,6 +329,7 @@ button:hover { opacity: 0.85; }
 /* SHORTCUTS */
 .shortcuts-section {
   margin-top: 4px;
+  flex-shrink: 0;
 }
 
 .shortcuts-header {
@@ -617,6 +620,7 @@ button:hover { opacity: 0.85; }
 /* CHECKLIST PANEL */
 .checklist-section {
   margin-top: 4px;
+  flex-shrink: 0;
 }
 
 .checklist-header {
