@@ -15,6 +15,8 @@
   let tcInterval = null;
   let manualTcFocused = false;
   let formTimecode = null; // captured when user clicks into Name/Comment fields
+  let checklistItems = []; // template items + per-project checked state
+  let checklistTemplate = []; // raw template for settings editor
 
   // --- DOM refs ---
   const projectListView = document.getElementById('project-list-view');
@@ -42,6 +44,9 @@
   const buttonEditorEl = document.getElementById('button-editor');
   const addButtonBtn = document.getElementById('add-button-btn');
   const saveSettingsBtn = document.getElementById('save-settings-btn');
+  const checklistItemsEl = document.getElementById('checklist-items');
+  const checklistEditorEl = document.getElementById('checklist-editor');
+  const addChecklistItemBtn = document.getElementById('add-checklist-item-btn');
 
   // --- Timecode ---
   function getCurrentTimecode() {
@@ -259,6 +264,15 @@
       renderShortcutButtons();
       renderMarkers();
 
+      // Load checklist state for this project
+      try {
+        checklistItems = await api(`/checklist/state?projectId=${id}`);
+      } catch (err) {
+        console.warn('Checklist load failed:', err);
+        checklistItems = [];
+      }
+      renderChecklist();
+
       projectListView.classList.add('hidden');
       projectView.classList.remove('hidden');
 
@@ -274,6 +288,7 @@
     unsubscribeFromPusher();
     currentProject = null;
     markers = [];
+    checklistItems = [];
 
     projectView.classList.add('hidden');
     projectListView.classList.remove('hidden');
@@ -458,6 +473,66 @@
     }
   }
 
+  // --- Checklist ---
+  function renderChecklist() {
+    if (checklistItems.length === 0) {
+      checklistItemsEl.innerHTML = '<div class="empty-state" style="padding:20px;font-size:0.8rem;">No checklist items. Add them in Settings.</div>';
+      return;
+    }
+
+    checklistItemsEl.innerHTML = checklistItems.map(item => {
+      const checkedClass = item.checked ? 'checked' : '';
+      const markerDot = item.drops_marker
+        ? `<span class="checklist-marker-dot dot-${item.color}"></span>`
+        : '';
+      return `
+        <div class="checklist-row ${checkedClass}" data-item-id="${item.id}">
+          <span class="checklist-checkbox"></span>
+          <span class="checklist-label">${escapeHtml(item.label)}</span>
+          ${markerDot}
+        </div>
+      `;
+    }).join('');
+
+    checklistItemsEl.querySelectorAll('.checklist-row').forEach(row => {
+      row.addEventListener('click', () => toggleChecklistItem(parseInt(row.dataset.itemId)));
+    });
+  }
+
+  async function toggleChecklistItem(itemId) {
+    if (!currentProject) return;
+
+    const item = checklistItems.find(i => i.id === itemId);
+    if (!item) return;
+
+    const newChecked = !item.checked;
+
+    // Optimistic UI update
+    item.checked = newChecked;
+    renderChecklist();
+
+    try {
+      await api('/checklist/state', {
+        method: 'PUT',
+        body: {
+          projectId: currentProject.id,
+          checklist_item_id: itemId,
+          checked: newChecked
+        }
+      });
+
+      // If checking (not unchecking) and drops_marker is enabled, add a marker
+      if (newChecked && item.drops_marker) {
+        addMarker(item.label, item.color, item.label);
+      }
+    } catch (err) {
+      // Revert on failure
+      item.checked = !newChecked;
+      renderChecklist();
+      alert('Failed to update checklist: ' + err.message);
+    }
+  }
+
   // --- Exports ---
   exportEdlBtn.addEventListener('click', () => {
     if (!currentProject) return;
@@ -484,9 +559,19 @@
     }
   });
 
-  function openSettings() {
+  async function openSettings() {
     if (!currentProject) return;
     renderButtonEditor();
+
+    // Load checklist template
+    try {
+      checklistTemplate = await api('/checklist/template');
+    } catch (err) {
+      console.warn('Failed to load checklist template:', err);
+      checklistTemplate = [];
+    }
+    renderChecklistEditor();
+
     settingsModal.classList.remove('hidden');
   }
 
@@ -541,8 +626,41 @@
     renderButtonEditor();
   });
 
+  // --- Checklist Template Editor ---
+  function renderChecklistEditor() {
+    const colors = ['Orange', 'Blue', 'Purple', 'White', 'Pink', 'Red'];
+
+    checklistEditorEl.innerHTML = checklistTemplate.map((item, i) => {
+      const colorOptions = colors.map(c =>
+        `<option value="${c}" ${c === item.color ? 'selected' : ''}>${c}</option>`
+      ).join('');
+
+      return `
+        <div class="checklist-editor-row" data-index="${i}">
+          <input type="text" value="${escapeHtml(item.label)}" placeholder="Label" data-field="label" />
+          <label><input type="checkbox" data-field="drops_marker" ${item.drops_marker ? 'checked' : ''} /> Marker</label>
+          <select data-field="color">${colorOptions}</select>
+          <button class="btn-remove-row cl-remove" data-index="${i}">&times;</button>
+        </div>
+      `;
+    }).join('');
+
+    checklistEditorEl.querySelectorAll('.cl-remove').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.dataset.index);
+        checklistTemplate.splice(idx, 1);
+        renderChecklistEditor();
+      });
+    });
+  }
+
+  addChecklistItemBtn.addEventListener('click', () => {
+    checklistTemplate.push({ id: null, label: 'NEW', drops_marker: false, color: 'Orange', sort_order: checklistTemplate.length });
+    renderChecklistEditor();
+  });
+
   saveSettingsBtn.addEventListener('click', async () => {
-    // Read values from editor
+    // Read shortcut button values from editor
     const rows = buttonEditorEl.querySelectorAll('.button-editor-row');
     const buttons = [];
     rows.forEach(row => {
@@ -553,13 +671,64 @@
       }
     });
 
+    // Read checklist template values from editor
+    const clRows = checklistEditorEl.querySelectorAll('.checklist-editor-row');
+    const newTemplate = [];
+    clRows.forEach((row, i) => {
+      const label = row.querySelector('[data-field="label"]').value.trim();
+      const drops_marker = row.querySelector('[data-field="drops_marker"]').checked;
+      const color = row.querySelector('[data-field="color"]').value;
+      if (label) {
+        newTemplate.push({
+          id: checklistTemplate[i] ? checklistTemplate[i].id : null,
+          label, drops_marker, color, sort_order: i
+        });
+      }
+    });
+
     try {
+      // Save shortcut buttons
       await api(`/projects/${currentProject.id}`, {
         method: 'PUT',
         body: { buttons }
       });
       currentProject.buttons = buttons;
       renderShortcutButtons();
+
+      // Save checklist template: delete removed, update existing, create new
+      const oldIds = checklistTemplate.map(t => t.id).filter(Boolean);
+      const newIds = newTemplate.map(t => t.id).filter(Boolean);
+
+      // Delete removed items
+      for (const oldId of oldIds) {
+        if (!newIds.includes(oldId)) {
+          await api(`/checklist/template/${oldId}`, { method: 'DELETE' });
+        }
+      }
+
+      // Update existing + create new
+      for (const item of newTemplate) {
+        if (item.id) {
+          await api(`/checklist/template/${item.id}`, {
+            method: 'PUT',
+            body: { label: item.label, drops_marker: item.drops_marker, color: item.color, sort_order: item.sort_order }
+          });
+        } else {
+          await api('/checklist/template', {
+            method: 'POST',
+            body: { label: item.label, drops_marker: item.drops_marker, color: item.color }
+          });
+        }
+      }
+
+      // Reload checklist for the current project
+      try {
+        checklistItems = await api(`/checklist/state?projectId=${currentProject.id}`);
+      } catch (err) {
+        checklistItems = [];
+      }
+      renderChecklist();
+
       settingsModal.classList.add('hidden');
     } catch (err) {
       alert('Failed to save settings: ' + err.message);

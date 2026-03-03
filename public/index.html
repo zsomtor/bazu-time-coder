@@ -74,6 +74,14 @@
           <div id="shortcut-buttons" class="shortcut-grid"></div>
           <button id="repeat-last-btn" class="btn-repeat">Repeat Last</button>
         </div>
+
+        <!-- Checklist Panel -->
+        <div class="checklist-section">
+          <div class="checklist-header">
+            <h3>Checklist</h3>
+          </div>
+          <div id="checklist-items" class="checklist-items"></div>
+        </div>
       </div>
 
       <!-- RIGHT PANEL -->
@@ -94,12 +102,19 @@
   <div id="settings-modal" class="modal hidden">
     <div class="modal-content">
       <div class="modal-header">
-        <h2>Shortcut Buttons Settings</h2>
+        <h2>Settings</h2>
         <button id="close-settings-btn" class="btn-close">&times;</button>
       </div>
       <div class="modal-body">
+        <h3 class="settings-section-title">Shortcut Buttons</h3>
         <div id="button-editor"></div>
         <button id="add-button-btn" class="btn-secondary">+ Add Button</button>
+
+        <div class="settings-divider"></div>
+
+        <h3 class="settings-section-title">Checklist Template</h3>
+        <div id="checklist-editor"></div>
+        <button id="add-checklist-item-btn" class="btn-secondary">+ Add Checklist Item</button>
       </div>
       <div class="modal-footer">
         <button id="save-settings-btn" class="btn-primary">Save</button>
