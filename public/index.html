@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bazu Time Coder</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
+</head>
+<body>
+  <!-- PROJECT LIST VIEW -->
+  <div id="project-list-view" class="view">
+    <div class="project-list-container">
+      <h1 class="app-title">BAZU TIME CODER</h1>
+      <p class="app-subtitle">Podcast Live Timecode Marker</p>
+
+      <div class="create-project">
+        <input type="text" id="new-project-name" placeholder="New project name..." />
+        <button id="create-project-btn">Create Project</button>
+      </div>
+
+      <div class="project-list-header">
+        <h2>Projects</h2>
+        <button id="setup-db-btn" class="btn-small">Setup DB</button>
+      </div>
+      <div id="project-list"></div>
+    </div>
+  </div>
+
+  <!-- PROJECT VIEW -->
+  <div id="project-view" class="view hidden">
+    <div class="project-layout">
+      <!-- LEFT PANEL -->
+      <div class="left-panel">
+        <button id="back-btn" class="btn-back">&larr; Projects</button>
+
+        <!-- Timecode Clock -->
+        <div class="timecode-display" id="timecode-display">00:00:00:00</div>
+
+        <!-- Manual Timecode Input -->
+        <div class="manual-tc-row">
+          <label>Manual TC:</label>
+          <input type="text" id="manual-timecode" class="tc-input" placeholder="HH:MM:SS:FF" />
+        </div>
+
+        <!-- Marker Form -->
+        <div class="marker-form">
+          <div class="form-row">
+            <input type="text" id="marker-name" placeholder="Name / Label" />
+          </div>
+          <div class="form-row">
+            <input type="text" id="marker-comment" placeholder="Comment..." />
+          </div>
+          <div class="form-row color-row">
+            <label>Color:</label>
+            <div class="color-picker" id="color-picker">
+              <button class="color-btn selected" data-color="Orange" style="background:#ff8c00" title="Orange"></button>
+              <button class="color-btn" data-color="Blue" style="background:#4a9eff" title="Blue"></button>
+              <button class="color-btn" data-color="Purple" style="background:#a855f7" title="Purple"></button>
+              <button class="color-btn" data-color="White" style="background:#e0e0e0" title="White"></button>
+              <button class="color-btn" data-color="Pink" style="background:#f472b6" title="Pink"></button>
+              <button class="color-btn" data-color="Red" style="background:#ef4444" title="Red"></button>
+            </div>
+          </div>
+          <button id="add-marker-btn" class="btn-primary">Add Note</button>
+        </div>
+
+        <!-- Shortcut Buttons -->
+        <div class="shortcuts-section">
+          <div class="shortcuts-header">
+            <h3>Shortcuts</h3>
+            <button id="edit-shortcuts-btn" class="btn-small">Edit</button>
+          </div>
+          <div id="shortcut-buttons" class="shortcut-grid"></div>
+          <button id="repeat-last-btn" class="btn-repeat">Repeat Last</button>
+        </div>
+      </div>
+
+      <!-- RIGHT PANEL -->
+      <div class="right-panel">
+        <div class="right-header">
+          <h2 id="project-name-header"></h2>
+          <div class="export-buttons">
+            <button id="export-edl-btn" class="btn-export">Export EDL</button>
+            <button id="export-pdf-btn" class="btn-export">Export PDF</button>
+          </div>
+        </div>
+        <div id="marker-list" class="marker-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS MODAL -->
+  <div id="settings-modal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Shortcut Buttons Settings</h2>
+        <button id="close-settings-btn" class="btn-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="button-editor"></div>
+        <button id="add-button-btn" class="btn-secondary">+ Add Button</button>
+      </div>
+      <div class="modal-footer">
+        <button id="save-settings-btn" class="btn-primary">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

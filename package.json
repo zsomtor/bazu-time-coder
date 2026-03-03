@@ -1,0 +1,15 @@
+{
+  "name": "bazu-time-coder",
+  "version": "1.0.0",
+  "description": "Podcast live timecode marker app for team use during recordings",
+  "private": true,
+  "scripts": {
+    "dev": "vercel dev",
+    "setup-db": "node scripts/setup-db.js"
+  },
+  "dependencies": {
+    "@vercel/postgres": "^0.10.0",
+    "pdfkit": "^0.15.0",
+    "pusher": "^5.2.0"
+  }
+}
