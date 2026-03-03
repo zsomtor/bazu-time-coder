@@ -231,7 +231,7 @@ button:hover { opacity: 0.85; }
 
 /* TIMECODE DISPLAY */
 .timecode-display {
-  font-size: 3rem;
+  font-size: 2.5rem;
   font-weight: 800;
   font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
   text-align: center;
@@ -239,8 +239,9 @@ button:hover { opacity: 0.85; }
   background: #0a0a0a;
   border: 2px solid #333;
   border-radius: 12px;
-  letter-spacing: 3px;
+  letter-spacing: 2px;
   color: #ff8c00;
+  overflow: hidden;
 }
 
 /* MANUAL TC */
@@ -678,7 +679,7 @@ button:hover { opacity: 0.85; }
   /* Timecode display — scale down */
   .timecode-display {
     font-size: 2rem;
-    padding: 16px;
+    padding: 14px;
     letter-spacing: 1px;
   }
 
