@@ -32,7 +32,7 @@ module.exports = async function handler(req, res) {
 
       const { rows } = await sql`
         INSERT INTO checklist_template (label, drops_marker, color, sort_order)
-        VALUES (${label.trim()}, ${drops_marker || false}, ${color || 'Orange'}, ${nextOrder})
+        VALUES (${label.trim()}, ${drops_marker === true}, ${color || 'Orange'}, ${nextOrder})
         RETURNING *
       `;
       return res.status(201).json(rows[0]);

@@ -11,22 +11,13 @@ module.exports = async function handler(req, res) {
     if (req.method === 'PUT') {
       const { label, drops_marker, color, sort_order } = req.body;
 
-      const updates = [];
-      const values = {};
-
-      if (label !== undefined) { values.label = label.trim(); }
-      if (drops_marker !== undefined) { values.drops_marker = drops_marker; }
-      if (color !== undefined) { values.color = color; }
-      if (sort_order !== undefined) { values.sort_order = sort_order; }
-
-      // Build update dynamically
       const { rows } = await sql`
         UPDATE checklist_template
         SET
-          label = COALESCE(${values.label !== undefined ? values.label : null}, label),
-          drops_marker = COALESCE(${values.drops_marker !== undefined ? values.drops_marker : null}, drops_marker),
-          color = COALESCE(${values.color !== undefined ? values.color : null}, color),
-          sort_order = COALESCE(${values.sort_order !== undefined ? values.sort_order : null}, sort_order)
+          label = ${(label || '').trim()},
+          drops_marker = ${drops_marker === true},
+          color = ${color || 'Orange'},
+          sort_order = ${sort_order != null ? sort_order : 0}
         WHERE id = ${id}
         RETURNING *
       `;

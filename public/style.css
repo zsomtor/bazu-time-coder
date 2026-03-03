@@ -718,6 +718,12 @@ button:hover { opacity: 0.85; }
 }
 
 /* CHECKLIST TEMPLATE EDITOR */
+#checklist-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .checklist-editor-row {
   display: flex;
   gap: 8px;
