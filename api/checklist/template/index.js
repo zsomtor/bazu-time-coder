@@ -13,6 +13,11 @@ module.exports = async function handler(req, res) {
       return res.status(200).json(rows);
     }
 
+    if (req.method === 'DELETE') {
+      await sql`DELETE FROM checklist_template`;
+      return res.status(200).json({ message: 'All checklist template items deleted' });
+    }
+
     if (req.method === 'POST') {
       const { label, drops_marker, color } = req.body;
       if (!label || !label.trim()) {
