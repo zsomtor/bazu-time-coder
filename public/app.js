@@ -17,6 +17,7 @@
   let formTimecode = null; // captured when user clicks into Name/Comment fields
   let checklistItems = []; // template items + per-project checked state
   let checklistTemplate = []; // raw template for settings editor
+  let activeFilter = null; // active marker filter label (null = show all)
 
   // --- DOM refs ---
   const projectListView = document.getElementById('project-list-view');
@@ -47,6 +48,7 @@
   const checklistItemsEl = document.getElementById('checklist-items');
   const checklistEditorEl = document.getElementById('checklist-editor');
   const addChecklistItemBtn = document.getElementById('add-checklist-item-btn');
+  const markerFilterEl = document.getElementById('marker-filter');
 
   // --- Timecode ---
   function getCurrentTimecode() {
@@ -289,6 +291,7 @@
     currentProject = null;
     markers = [];
     checklistItems = [];
+    activeFilter = null;
 
     projectView.classList.add('hidden');
     projectListView.classList.remove('hidden');
@@ -388,16 +391,58 @@
         }
       });
     });
+
+    renderFilterBar();
+  }
+
+  // --- Filter bar ---
+  function renderFilterBar() {
+    if (!currentProject) return;
+
+    const buttons = currentProject.buttons || [];
+    if (buttons.length === 0) {
+      markerFilterEl.innerHTML = '';
+      return;
+    }
+
+    const allActive = !activeFilter ? 'active' : '';
+    let html = `<button class="filter-pill ${allActive}" data-filter="">All</button>`;
+    html += buttons.map(btn => {
+      const isActive = activeFilter === btn.label ? 'active' : '';
+      return `<button class="filter-pill ${isActive}" data-filter="${escapeHtml(btn.label)}">${escapeHtml(btn.label)}</button>`;
+    }).join('');
+
+    markerFilterEl.innerHTML = html;
+
+    markerFilterEl.querySelectorAll('.filter-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        const filter = pill.dataset.filter;
+        if (!filter || activeFilter === filter) {
+          activeFilter = null;
+        } else {
+          activeFilter = filter;
+        }
+        renderFilterBar();
+        renderMarkers();
+      });
+    });
   }
 
   // --- Marker list ---
   function renderMarkers() {
-    if (markers.length === 0) {
-      markerListEl.innerHTML = '<div class="empty-state">No markers yet. Add one using the form or shortcut buttons.</div>';
+    const filtered = activeFilter
+      ? markers.filter(m => m.name === activeFilter)
+      : markers;
+
+    if (filtered.length === 0) {
+      const msg = activeFilter
+        ? `No markers matching "${escapeHtml(activeFilter)}".`
+        : 'No markers yet. Add one using the form or shortcut buttons.';
+      markerListEl.innerHTML = `<div class="empty-state">${msg}</div>`;
       return;
     }
 
-    markerListEl.innerHTML = markers.map(m => {
+    markerListEl.innerHTML = filtered.map(m => {
       return `
         <div class="marker-row" data-id="${m.id}">
           <span class="marker-tc">${escapeHtml(m.timecode)}</span>
@@ -627,6 +672,17 @@
   });
 
   // --- Checklist Template Editor ---
+  function syncChecklistEditorToArray() {
+    const rows = checklistEditorEl.querySelectorAll('.checklist-editor-row');
+    rows.forEach((row, i) => {
+      if (checklistTemplate[i]) {
+        checklistTemplate[i].label = row.querySelector('[data-field="label"]').value;
+        checklistTemplate[i].drops_marker = row.querySelector('[data-field="drops_marker"]').checked;
+        checklistTemplate[i].color = row.querySelector('[data-field="color"]').value;
+      }
+    });
+  }
+
   function renderChecklistEditor() {
     const colors = ['Orange', 'Blue', 'Purple', 'White', 'Pink', 'Red'];
 
@@ -647,6 +703,7 @@
 
     checklistEditorEl.querySelectorAll('.cl-remove').forEach(btn => {
       btn.addEventListener('click', () => {
+        syncChecklistEditorToArray();
         const idx = parseInt(btn.dataset.index);
         checklistTemplate.splice(idx, 1);
         renderChecklistEditor();
@@ -655,6 +712,7 @@
   }
 
   addChecklistItemBtn.addEventListener('click', () => {
+    syncChecklistEditorToArray();
     checklistTemplate.push({ id: null, label: 'NEW', drops_marker: false, color: 'Orange', sort_order: checklistTemplate.length });
     renderChecklistEditor();
   });

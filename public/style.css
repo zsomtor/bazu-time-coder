@@ -375,6 +375,42 @@ button:hover { opacity: 0.85; }
   color: #ff8c00;
 }
 
+/* MARKER FILTER BAR */
+.marker-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 24px 0;
+}
+
+.marker-filter:empty {
+  display: none;
+}
+
+.filter-pill {
+  padding: 4px 12px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-radius: 20px;
+  background: transparent;
+  color: #666;
+  border: 1px solid #333;
+  transition: all 0.15s;
+}
+
+.filter-pill:hover {
+  color: #aaa;
+  border-color: #555;
+}
+
+.filter-pill.active {
+  color: #ff8c00;
+  border-color: #ff8c00;
+  background: rgba(255, 140, 0, 0.1);
+}
+
 /* MARKER LIST */
 .marker-list {
   flex: 1;
