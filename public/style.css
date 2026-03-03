@@ -599,3 +599,220 @@ button:hover { opacity: 0.85; }
 ::-webkit-scrollbar-thumb:hover {
   background: #444;
 }
+
+/* ==================== MOBILE RESPONSIVE ==================== */
+
+/* Tablets and small screens */
+@media (max-width: 768px) {
+
+  /* Stack the two panels vertically */
+  .project-layout {
+    flex-direction: column;
+    height: auto;
+    overflow: visible;
+    min-height: 100vh;
+  }
+
+  .left-panel {
+    width: 100%;
+    min-width: 0;
+    border-right: none;
+    border-bottom: 1px solid #222;
+    overflow-y: visible;
+  }
+
+  .right-panel {
+    flex: none;
+    overflow: visible;
+  }
+
+  .marker-list {
+    overflow-y: visible;
+    max-height: none;
+    padding: 12px 16px;
+  }
+
+  .right-header {
+    padding: 16px;
+  }
+
+  /* Modal — fit the screen */
+  .modal-content {
+    width: min(480px, 92vw);
+  }
+}
+
+/* Phones */
+@media (max-width: 480px) {
+
+  /* Project list view */
+  .project-list-container {
+    padding: 30px 16px;
+  }
+
+  .app-title {
+    font-size: 1.8rem;
+    letter-spacing: 2px;
+  }
+
+  .app-subtitle {
+    font-size: 0.85rem;
+    margin-bottom: 24px;
+  }
+
+  .create-project {
+    flex-direction: column;
+  }
+
+  #create-project-btn {
+    width: 100%;
+    padding: 14px;
+  }
+
+  /* Left panel — more breathing room */
+  .left-panel {
+    padding: 16px;
+    gap: 14px;
+  }
+
+  /* Timecode display — scale down */
+  .timecode-display {
+    font-size: 2rem;
+    padding: 16px;
+    letter-spacing: 1px;
+  }
+
+  /* Marker form inputs — prevent iOS zoom (need >= 16px) */
+  .form-row input,
+  .tc-input,
+  .create-project input {
+    font-size: 1rem;
+  }
+
+  /* Color buttons — bigger touch targets */
+  .color-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .color-picker {
+    gap: 10px;
+  }
+
+  /* Shortcut grid — single column on narrow phones */
+  .shortcut-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .shortcut-btn {
+    padding: 14px 10px;
+    font-size: 0.85rem;
+  }
+
+  /* Bigger touch targets for small buttons */
+  .btn-small {
+    padding: 8px 16px;
+    font-size: 0.8rem;
+  }
+
+  .btn-export {
+    padding: 10px 14px;
+    font-size: 0.85rem;
+  }
+
+  .btn-repeat {
+    padding: 14px;
+    font-size: 0.9rem;
+  }
+
+  /* Right panel header — stack on very narrow screens */
+  .right-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 14px 16px;
+  }
+
+  .export-buttons {
+    width: 100%;
+  }
+
+  .btn-export {
+    flex: 1;
+  }
+
+  /* Marker rows — adapt for small screens */
+  .marker-row {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+
+  .marker-comment {
+    flex-basis: 100%;
+    white-space: normal;
+    order: 10;
+  }
+
+  /* Marker action buttons — bigger tap targets */
+  .marker-edit-btn,
+  .marker-delete-btn {
+    padding: 8px;
+    font-size: 1rem;
+  }
+
+  /* Modal — full width */
+  .modal-content {
+    width: 94vw;
+    max-height: 90vh;
+  }
+
+  .modal-header {
+    padding: 14px 16px;
+  }
+
+  .modal-body {
+    padding: 16px;
+  }
+
+  .modal-footer {
+    padding: 14px 16px;
+  }
+
+  /* Button editor rows in modal */
+  .button-editor-row {
+    flex-wrap: wrap;
+  }
+
+  .button-editor-row input {
+    min-width: 0;
+    font-size: 1rem;
+  }
+
+  .button-editor-row select {
+    font-size: 1rem;
+  }
+
+  .btn-remove-row {
+    padding: 8px;
+    font-size: 1.1rem;
+  }
+
+  .btn-move-row {
+    padding: 6px 10px;
+    font-size: 0.9rem;
+  }
+
+  /* Project delete button — bigger tap area */
+  #project-list .project-item .project-delete {
+    padding: 8px 12px;
+    font-size: 1.4rem;
+  }
+
+  /* Close button in modal */
+  .btn-close {
+    padding: 8px 14px;
+    font-size: 1.8rem;
+  }
+}
