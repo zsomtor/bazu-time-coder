@@ -128,7 +128,8 @@
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({ error: 'Request failed' }));
-      throw new Error(err.error || err.details || 'Request failed');
+      const msg = err.details ? `${err.error || 'Request failed'}: ${err.details}` : (err.error || 'Request failed');
+      throw new Error(msg);
     }
     const contentType = res.headers.get('content-type');
     if (contentType && contentType.includes('application/json')) {
@@ -193,7 +194,7 @@
       renderProjectList(projects);
     } catch (err) {
       console.error('Failed to load projects:', err);
-      projectListEl.innerHTML = '<div class="empty-state">Failed to load projects. Click "Setup DB" first if this is a fresh deployment.</div>';
+      projectListEl.innerHTML = `<div class="empty-state">Failed to load projects. Click "Setup DB" first if this is a fresh deployment.<br><br><small style="opacity:0.7">${escapeHtml(err.message || String(err))}</small></div>`;
     }
   }
 
