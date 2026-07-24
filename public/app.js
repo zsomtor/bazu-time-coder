@@ -54,6 +54,7 @@
   const exportEdlBtn = document.getElementById('export-edl-btn');
   const exportPdfBtn = document.getElementById('export-pdf-btn');
   const editShortcutsBtn = document.getElementById('edit-shortcuts-btn');
+  const editChecklistBtn = document.getElementById('edit-checklist-btn');
   const settingsModal = document.getElementById('settings-modal');
   const closeSettingsBtn = document.getElementById('close-settings-btn');
   const buttonEditorEl = document.getElementById('button-editor');
@@ -608,6 +609,13 @@
   // --- Settings Modal ---
   editShortcutsBtn.addEventListener('click', () => {
     openSettings();
+  });
+
+  // Same Settings modal, but scroll straight to the checklist editors.
+  editChecklistBtn.addEventListener('click', async () => {
+    await openSettings();
+    const target = document.querySelector('#checklist-editor');
+    if (target) target.scrollIntoView({ block: 'start' });
   });
 
   closeSettingsBtn.addEventListener('click', () => {
