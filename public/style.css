@@ -619,6 +619,31 @@ button:hover { opacity: 0.85; }
 
 .btn-move-row:hover { color: #fff; }
 
+/* DRAG-AND-DROP REORDER */
+.drag-handle {
+  cursor: grab;
+  color: #555;
+  font-size: 0.95rem;
+  line-height: 1;
+  padding: 0 2px;
+  align-self: center;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.drag-handle:hover { color: #aaa; }
+.drag-handle:active { cursor: grabbing; }
+
+.button-editor-row.dragging,
+.checklist-editor-row.dragging {
+  opacity: 0.4;
+}
+
+.button-editor-row.drag-over,
+.checklist-editor-row.drag-over {
+  box-shadow: inset 0 2px 0 #ff8c00;
+}
+
 /* CHECKLIST PANEL */
 .checklist-section {
   margin-top: 4px;

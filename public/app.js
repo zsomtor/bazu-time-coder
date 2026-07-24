@@ -33,6 +33,57 @@
     ).join('');
   }
 
+  // --- Drag-and-drop reordering for editor rows ---
+  let dragState = null; // { arr, from }
+
+  function moveItem(arr, from, to) {
+    if (from === to || from < 0 || to < 0 || from >= arr.length || to >= arr.length) return;
+    const [item] = arr.splice(from, 1);
+    arr.splice(to, 0, item);
+  }
+
+  // Wire drag handles inside a rendered editor. `sync` snapshots the current
+  // input values back into `arr` (so in-progress edits aren't lost on reorder),
+  // then the array is reordered and `rerender` redraws it.
+  function enableDragReorder(containerEl, rowSelector, arr, sync, rerender) {
+    containerEl.querySelectorAll(rowSelector).forEach(row => {
+      const index = parseInt(row.dataset.index);
+      const handle = row.querySelector('.drag-handle');
+
+      if (handle) {
+        handle.addEventListener('dragstart', (e) => {
+          dragState = { arr, from: index };
+          row.classList.add('dragging');
+          e.dataTransfer.effectAllowed = 'move';
+          try { e.dataTransfer.setData('text/plain', String(index)); } catch (_) {}
+        });
+        handle.addEventListener('dragend', () => {
+          containerEl.querySelectorAll(rowSelector).forEach(r => {
+            r.classList.remove('dragging', 'drag-over');
+          });
+          dragState = null;
+        });
+      }
+
+      row.addEventListener('dragover', (e) => {
+        if (!dragState || dragState.arr !== arr) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        row.classList.add('drag-over');
+      });
+      row.addEventListener('dragleave', () => row.classList.remove('drag-over'));
+      row.addEventListener('drop', (e) => {
+        if (!dragState || dragState.arr !== arr) return;
+        e.preventDefault();
+        const from = dragState.from;
+        dragState = null;
+        sync();
+        moveItem(arr, from, index);
+        rerender();
+      });
+    });
+  }
+
   // --- DOM refs ---
   const projectListView = document.getElementById('project-list-view');
   const projectView = document.getElementById('project-view');
@@ -652,6 +703,16 @@
     settingsModal.classList.remove('hidden');
   }
 
+  function syncButtonEditor() {
+    const rows = buttonEditorEl.querySelectorAll('.button-editor-row');
+    rows.forEach((row, i) => {
+      if (currentProject.buttons[i]) {
+        currentProject.buttons[i].label = row.querySelector('[data-field="label"]').value;
+        currentProject.buttons[i].color = row.querySelector('[data-field="color"]').value;
+      }
+    });
+  }
+
   function renderButtonEditor() {
     const buttons = currentProject.buttons || [];
 
@@ -660,6 +721,7 @@
 
       return `
         <div class="button-editor-row" data-index="${i}">
+          <span class="drag-handle" draggable="true" title="Drag to reorder">&#x2630;</span>
           <div style="display:flex;flex-direction:column;gap:2px;">
             <button class="btn-move-row" data-dir="up" data-index="${i}" ${i === 0 ? 'disabled' : ''}>&uarr;</button>
             <button class="btn-move-row" data-dir="down" data-index="${i}" ${i === buttons.length - 1 ? 'disabled' : ''}>&darr;</button>
@@ -671,15 +733,16 @@
       `;
     }).join('');
 
-    // Move buttons
+    // Move buttons (up/down arrows)
     buttonEditorEl.querySelectorAll('.btn-move-row').forEach(btn => {
       btn.addEventListener('click', () => {
         const idx = parseInt(btn.dataset.index);
         const dir = btn.dataset.dir;
-        const buttons = currentProject.buttons;
         const swapIdx = dir === 'up' ? idx - 1 : idx + 1;
-        if (swapIdx < 0 || swapIdx >= buttons.length) return;
-        [buttons[idx], buttons[swapIdx]] = [buttons[swapIdx], buttons[idx]];
+        if (swapIdx < 0 || swapIdx >= currentProject.buttons.length) return;
+        syncButtonEditor();
+        const b = currentProject.buttons;
+        [b[idx], b[swapIdx]] = [b[swapIdx], b[idx]];
         renderButtonEditor();
       });
     });
@@ -687,11 +750,14 @@
     // Remove buttons
     buttonEditorEl.querySelectorAll('.btn-remove-row').forEach(btn => {
       btn.addEventListener('click', () => {
+        syncButtonEditor();
         const idx = parseInt(btn.dataset.index);
         currentProject.buttons.splice(idx, 1);
         renderButtonEditor();
       });
     });
+
+    enableDragReorder(buttonEditorEl, '.button-editor-row', currentProject.buttons, syncButtonEditor, renderButtonEditor);
   }
 
   addButtonBtn.addEventListener('click', () => {
@@ -715,6 +781,7 @@
   function renderChecklistScope(containerEl, arr) {
     containerEl.innerHTML = arr.map((item, i) => `
         <div class="checklist-editor-row" data-index="${i}">
+          <span class="drag-handle" draggable="true" title="Drag to reorder">&#x2630;</span>
           <input type="text" value="${escapeHtml(item.label)}" placeholder="Label" data-field="label" />
           <label><input type="checkbox" data-field="drops_marker" ${item.drops_marker ? 'checked' : ''} /> Marker</label>
           <select data-field="color">${colorOptionsHtml(item.color)}</select>
@@ -730,6 +797,12 @@
         renderChecklistScope(containerEl, arr);
       });
     });
+
+    enableDragReorder(
+      containerEl, '.checklist-editor-row', arr,
+      () => syncChecklistArray(containerEl, arr),
+      () => renderChecklistScope(containerEl, arr)
+    );
   }
 
   function renderChecklistEditor() {
