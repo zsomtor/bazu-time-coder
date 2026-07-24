@@ -54,12 +54,13 @@
           <div class="form-row color-row">
             <label>Color:</label>
             <div class="color-picker" id="color-picker">
-              <button class="color-btn selected" data-color="Orange" style="background:#ff8c00" title="Orange"></button>
+              <button class="color-btn selected" data-color="Pink" style="background:#f472b6" title="Pink"></button>
+              <button class="color-btn" data-color="Yellow" style="background:#eab308" title="Yellow"></button>
               <button class="color-btn" data-color="Blue" style="background:#4a9eff" title="Blue"></button>
-              <button class="color-btn" data-color="Purple" style="background:#a855f7" title="Purple"></button>
-              <button class="color-btn" data-color="White" style="background:#e0e0e0" title="White"></button>
-              <button class="color-btn" data-color="Pink" style="background:#f472b6" title="Pink"></button>
               <button class="color-btn" data-color="Red" style="background:#ef4444" title="Red"></button>
+              <button class="color-btn" data-color="Purple" style="background:#a855f7" title="Purple"></button>
+              <button class="color-btn" data-color="Orange" style="background:#ff8c00" title="Orange"></button>
+              <button class="color-btn" data-color="White" style="background:#e0e0e0" title="White"></button>
             </div>
           </div>
           <button id="add-marker-btn" class="btn-primary">Add Note</button>
@@ -113,9 +114,15 @@
 
         <div class="settings-divider"></div>
 
-        <h3 class="settings-section-title">Checklist Template</h3>
+        <h3 class="settings-section-title">Checklist &ndash; Base template (all projects)</h3>
         <div id="checklist-editor"></div>
-        <button id="add-checklist-item-btn" class="btn-secondary">+ Add Checklist Item</button>
+        <button id="add-checklist-item-btn" class="btn-secondary">+ Add base item</button>
+
+        <div class="settings-divider"></div>
+
+        <h3 class="settings-section-title">Checklist &ndash; This project only</h3>
+        <div id="checklist-editor-project"></div>
+        <button id="add-checklist-item-project-btn" class="btn-secondary">+ Add project item</button>
       </div>
       <div class="modal-footer">
         <button id="save-settings-btn" class="btn-primary">Save</button>

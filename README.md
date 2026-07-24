@@ -121,14 +121,18 @@ comment text |C:ResolveColorRed |M:MARKER NAME |D:0
 
 ### Color Mapping
 
-| App Color | DaVinci Resolve Color |
-|---|---|
-| Orange | ResolveColorRed |
-| Blue | ResolveColorBlue |
-| Purple | ResolveColorPurple |
-| White | ResolveColorBlue |
-| Pink | ResolveColorPink |
-| Red | ResolveColorRed |
+Every app color maps to a **distinct** DaVinci Resolve color, so markers keep
+their colors apart after import.
+
+| App Color | DaVinci Resolve Color | Default use |
+|---|---|---|
+| Pink | ResolveColorPink | BROLL |
+| Yellow | ResolveColorYellow | SPONSOR / AD-SPOT |
+| Blue | ResolveColorBlue | INTRO |
+| Red | ResolveColorRed | ROSSZ |
+| Purple | ResolveColorPurple | KEZDÉS |
+| Orange | ResolveColorSand | _legacy / backward-compat_ |
+| White | ResolveColorCream | _legacy / backward-compat_ |
 
 ## Database Schema
 
@@ -146,7 +150,25 @@ comment text |C:ResolveColorRed |M:MARKER NAME |D:0
 | id | SERIAL | Primary key |
 | project_id | INTEGER | Foreign key → projects.id |
 | timecode | TEXT | HH:MM:SS:FF format |
-| color | TEXT | Orange, Blue, Purple, White, Pink, Red |
+| color | TEXT | Pink, Yellow, Blue, Red, Purple (+ legacy Orange, White) |
 | name | TEXT | Marker label |
 | comment | TEXT | Free-text comment |
 | created_at | TIMESTAMP | Creation time |
+
+**checklist_template**
+| Column | Type | Description |
+|---|---|---|
+| id | SERIAL | Primary key |
+| project_id | INTEGER | `NULL` = shared base item (all projects); a project id = extra item for that project only |
+| label | TEXT | Item label |
+| drops_marker | BOOLEAN | If true, checking the item also drops a marker |
+| color | TEXT | Marker color |
+| sort_order | INTEGER | Display order within its scope |
+
+**checklist_state**
+| Column | Type | Description |
+|---|---|---|
+| id | SERIAL | Primary key |
+| project_id | INTEGER | Foreign key → projects.id |
+| checklist_item_id | INTEGER | Foreign key → checklist_template.id |
+| checked | BOOLEAN | Per-project checked state |

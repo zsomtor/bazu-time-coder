@@ -1,12 +1,18 @@
 const { sql, ensureTables } = require('../../lib/db');
 
+// Each app color maps to a DISTINCT DaVinci Resolve color so markers don't
+// collapse into the same color after import. Yellow is the new palette color;
+// Orange and White are kept only for backward compatibility with old markers
+// and are given their own distinct Resolve colors too.
 const COLOR_MAP = {
-  'Orange': 'ResolveColorRed',
-  'Blue': 'ResolveColorBlue',
-  'Purple': 'ResolveColorPurple',
-  'White': 'ResolveColorBlue',
   'Pink': 'ResolveColorPink',
-  'Red': 'ResolveColorRed'
+  'Yellow': 'ResolveColorYellow',
+  'Blue': 'ResolveColorBlue',
+  'Red': 'ResolveColorRed',
+  'Purple': 'ResolveColorPurple',
+  // backward-compat (legacy markers)
+  'Orange': 'ResolveColorSand',
+  'White': 'ResolveColorCream'
 };
 
 module.exports = async function handler(req, res) {

@@ -9,15 +9,29 @@
   let currentProject = null;
   let markers = [];
   let lastMarker = null;
-  let selectedColor = 'Orange';
+  let selectedColor = 'Pink';
   let pusherClient = null;
   let pusherChannel = null;
   let tcInterval = null;
   let manualTcFocused = false;
   let formTimecode = null; // captured when user clicks into Name/Comment fields
   let checklistItems = []; // template items + per-project checked state
-  let checklistTemplate = []; // raw template for settings editor
+  let checklistTemplate = []; // shared BASE template rows (project_id IS NULL)
+  let checklistTemplateProject = []; // extra rows for the current project only
+  let originalBaseIds = []; // base template ids at settings open (for delete diff)
+  let originalProjectIds = []; // project template ids at settings open
   let activeFilter = null; // active marker filter label (null = show all)
+
+  // Available marker colors. Each maps to a distinct DaVinci Resolve color on
+  // export (see api/export/edl.js). Pink/Yellow/Blue/Red/Purple are the primary
+  // palette; Orange/White remain for backward-compatibility with old data.
+  const COLORS = ['Pink', 'Yellow', 'Blue', 'Red', 'Purple', 'Orange', 'White'];
+
+  function colorOptionsHtml(selected) {
+    return COLORS.map(c =>
+      `<option value="${c}" ${c === selected ? 'selected' : ''}>${c}</option>`
+    ).join('');
+  }
 
   // --- DOM refs ---
   const projectListView = document.getElementById('project-list-view');
@@ -47,7 +61,9 @@
   const saveSettingsBtn = document.getElementById('save-settings-btn');
   const checklistItemsEl = document.getElementById('checklist-items');
   const checklistEditorEl = document.getElementById('checklist-editor');
+  const checklistEditorProjectEl = document.getElementById('checklist-editor-project');
   const addChecklistItemBtn = document.getElementById('add-checklist-item-btn');
+  const addChecklistItemProjectBtn = document.getElementById('add-checklist-item-project-btn');
   const markerFilterEl = document.getElementById('marker-filter');
 
   // --- Timecode ---
@@ -608,13 +624,21 @@
     if (!currentProject) return;
     renderButtonEditor();
 
-    // Load checklist template
+    // Load checklist templates: shared base + this project's extras
     try {
-      checklistTemplate = await api('/checklist/template');
+      const [base, project] = await Promise.all([
+        api('/checklist/template'),
+        api(`/checklist/template?projectId=${currentProject.id}`)
+      ]);
+      checklistTemplate = base;
+      checklistTemplateProject = project;
     } catch (err) {
       console.warn('Failed to load checklist template:', err);
       checklistTemplate = [];
+      checklistTemplateProject = [];
     }
+    originalBaseIds = checklistTemplate.map(t => t.id).filter(Boolean);
+    originalProjectIds = checklistTemplateProject.map(t => t.id).filter(Boolean);
     renderChecklistEditor();
 
     settingsModal.classList.remove('hidden');
@@ -622,12 +646,9 @@
 
   function renderButtonEditor() {
     const buttons = currentProject.buttons || [];
-    const colors = ['Orange', 'Blue', 'Purple', 'White', 'Pink', 'Red'];
 
     buttonEditorEl.innerHTML = buttons.map((btn, i) => {
-      const colorOptions = colors.map(c =>
-        `<option value="${c}" ${c === btn.color ? 'selected' : ''}>${c}</option>`
-      ).join('');
+      const colorOptions = colorOptionsHtml(btn.color);
 
       return `
         <div class="button-editor-row" data-index="${i}">
@@ -667,54 +688,57 @@
 
   addButtonBtn.addEventListener('click', () => {
     if (!currentProject.buttons) currentProject.buttons = [];
-    currentProject.buttons.push({ label: 'NEW', color: 'Orange' });
+    currentProject.buttons.push({ label: 'NEW', color: 'Pink' });
     renderButtonEditor();
   });
 
-  // --- Checklist Template Editor ---
-  function syncChecklistEditorToArray() {
-    const rows = checklistEditorEl.querySelectorAll('.checklist-editor-row');
+  // --- Checklist Template Editor (base + per-project scopes) ---
+  function syncChecklistArray(containerEl, arr) {
+    const rows = containerEl.querySelectorAll('.checklist-editor-row');
     rows.forEach((row, i) => {
-      if (checklistTemplate[i]) {
-        checklistTemplate[i].label = row.querySelector('[data-field="label"]').value;
-        checklistTemplate[i].drops_marker = row.querySelector('[data-field="drops_marker"]').checked;
-        checklistTemplate[i].color = row.querySelector('[data-field="color"]').value;
+      if (arr[i]) {
+        arr[i].label = row.querySelector('[data-field="label"]').value;
+        arr[i].drops_marker = row.querySelector('[data-field="drops_marker"]').checked;
+        arr[i].color = row.querySelector('[data-field="color"]').value;
       }
     });
   }
 
-  function renderChecklistEditor() {
-    const colors = ['Orange', 'Blue', 'Purple', 'White', 'Pink', 'Red'];
-
-    checklistEditorEl.innerHTML = checklistTemplate.map((item, i) => {
-      const colorOptions = colors.map(c =>
-        `<option value="${c}" ${c === item.color ? 'selected' : ''}>${c}</option>`
-      ).join('');
-
-      return `
+  function renderChecklistScope(containerEl, arr) {
+    containerEl.innerHTML = arr.map((item, i) => `
         <div class="checklist-editor-row" data-index="${i}">
           <input type="text" value="${escapeHtml(item.label)}" placeholder="Label" data-field="label" />
           <label><input type="checkbox" data-field="drops_marker" ${item.drops_marker ? 'checked' : ''} /> Marker</label>
-          <select data-field="color">${colorOptions}</select>
+          <select data-field="color">${colorOptionsHtml(item.color)}</select>
           <button class="btn-remove-row cl-remove" data-index="${i}">&times;</button>
         </div>
-      `;
-    }).join('');
+      `).join('');
 
-    checklistEditorEl.querySelectorAll('.cl-remove').forEach(btn => {
+    containerEl.querySelectorAll('.cl-remove').forEach(btn => {
       btn.addEventListener('click', () => {
-        syncChecklistEditorToArray();
+        syncChecklistArray(containerEl, arr);
         const idx = parseInt(btn.dataset.index);
-        checklistTemplate.splice(idx, 1);
-        renderChecklistEditor();
+        arr.splice(idx, 1);
+        renderChecklistScope(containerEl, arr);
       });
     });
   }
 
+  function renderChecklistEditor() {
+    renderChecklistScope(checklistEditorEl, checklistTemplate);
+    renderChecklistScope(checklistEditorProjectEl, checklistTemplateProject);
+  }
+
   addChecklistItemBtn.addEventListener('click', () => {
-    syncChecklistEditorToArray();
-    checklistTemplate.push({ id: null, label: 'NEW', drops_marker: false, color: 'Orange', sort_order: checklistTemplate.length });
-    renderChecklistEditor();
+    syncChecklistArray(checklistEditorEl, checklistTemplate);
+    checklistTemplate.push({ id: null, label: 'NEW', drops_marker: false, color: 'Pink', sort_order: checklistTemplate.length });
+    renderChecklistScope(checklistEditorEl, checklistTemplate);
+  });
+
+  addChecklistItemProjectBtn.addEventListener('click', () => {
+    syncChecklistArray(checklistEditorProjectEl, checklistTemplateProject);
+    checklistTemplateProject.push({ id: null, label: 'NEW', drops_marker: false, color: 'Pink', sort_order: checklistTemplateProject.length });
+    renderChecklistScope(checklistEditorProjectEl, checklistTemplateProject);
   });
 
   saveSettingsBtn.addEventListener('click', async () => {
@@ -729,20 +753,48 @@
       }
     });
 
-    // Read checklist template values from editor
-    const clRows = checklistEditorEl.querySelectorAll('.checklist-editor-row');
-    const newTemplate = [];
-    clRows.forEach((row, i) => {
-      const label = row.querySelector('[data-field="label"]').value.trim();
-      const drops_marker = row.querySelector('[data-field="drops_marker"]').checked;
-      const color = row.querySelector('[data-field="color"]').value;
-      if (label) {
-        newTemplate.push({
-          id: checklistTemplate[i] ? checklistTemplate[i].id : null,
-          label, drops_marker, color, sort_order: i
-        });
+    // Collect checklist template ops for one scope (base or per-project).
+    // Returns an array of in-flight API promises.
+    function collectChecklistOps(containerEl, arr, originalIds, projectId) {
+      const clRows = containerEl.querySelectorAll('.checklist-editor-row');
+      const newItems = [];
+      clRows.forEach((row, i) => {
+        const label = row.querySelector('[data-field="label"]').value.trim();
+        const drops_marker = row.querySelector('[data-field="drops_marker"]').checked;
+        const color = row.querySelector('[data-field="color"]').value;
+        if (label) {
+          newItems.push({
+            id: arr[i] ? arr[i].id : null,
+            label, drops_marker, color, sort_order: newItems.length
+          });
+        }
+      });
+
+      const newIds = newItems.map(t => t.id).filter(Boolean);
+      const ops = [];
+
+      // Delete removed items (compared against the ids present when settings opened)
+      for (const oldId of originalIds) {
+        if (!newIds.includes(oldId)) {
+          ops.push(api(`/checklist/template/${oldId}`, { method: 'DELETE' }));
+        }
       }
-    });
+
+      // Update existing + create new
+      for (const item of newItems) {
+        if (item.id) {
+          ops.push(api(`/checklist/template/${item.id}`, {
+            method: 'PUT',
+            body: { label: item.label, drops_marker: item.drops_marker, color: item.color, sort_order: item.sort_order }
+          }));
+        } else {
+          const body = { label: item.label, drops_marker: item.drops_marker, color: item.color };
+          if (projectId != null) body.projectId = projectId;
+          ops.push(api('/checklist/template', { method: 'POST', body }));
+        }
+      }
+      return ops;
+    }
 
     try {
       // Save shortcut buttons
@@ -753,33 +805,11 @@
       currentProject.buttons = buttons;
       renderShortcutButtons();
 
-      // Save checklist template: delete removed, update existing, create new
-      const oldIds = checklistTemplate.map(t => t.id).filter(Boolean);
-      const newIds = newTemplate.map(t => t.id).filter(Boolean);
-
-      const templateOps = [];
-
-      // Delete removed items
-      for (const oldId of oldIds) {
-        if (!newIds.includes(oldId)) {
-          templateOps.push(api(`/checklist/template/${oldId}`, { method: 'DELETE' }));
-        }
-      }
-
-      // Update existing + create new
-      for (const item of newTemplate) {
-        if (item.id) {
-          templateOps.push(api(`/checklist/template/${item.id}`, {
-            method: 'PUT',
-            body: { label: item.label, drops_marker: item.drops_marker, color: item.color, sort_order: item.sort_order }
-          }));
-        } else {
-          templateOps.push(api('/checklist/template', {
-            method: 'POST',
-            body: { label: item.label, drops_marker: item.drops_marker, color: item.color }
-          }));
-        }
-      }
+      // Save both checklist scopes: base template + this project's extras
+      const templateOps = [
+        ...collectChecklistOps(checklistEditorEl, checklistTemplate, originalBaseIds, null),
+        ...collectChecklistOps(checklistEditorProjectEl, checklistTemplateProject, originalProjectIds, currentProject.id)
+      ];
 
       await Promise.all(templateOps);
 

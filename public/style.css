@@ -505,19 +505,21 @@ button:hover { opacity: 0.85; }
 }
 
 /* COLOR MAP */
-.dot-Orange { background: #ff8c00; }
-.dot-Blue { background: #4a9eff; }
-.dot-Purple { background: #a855f7; }
-.dot-White { background: #e0e0e0; }
 .dot-Pink { background: #f472b6; }
+.dot-Yellow { background: #eab308; }
+.dot-Blue { background: #4a9eff; }
 .dot-Red { background: #ef4444; }
+.dot-Purple { background: #a855f7; }
+.dot-Orange { background: #ff8c00; }
+.dot-White { background: #e0e0e0; }
 
-.bg-Orange { background: #ff8c00; }
-.bg-Blue { background: #4a9eff; }
-.bg-Purple { background: #a855f7; }
-.bg-White { background: #e0e0e0; color: #333; }
 .bg-Pink { background: #f472b6; }
+.bg-Yellow { background: #eab308; }
+.bg-Blue { background: #4a9eff; }
 .bg-Red { background: #ef4444; }
+.bg-Purple { background: #a855f7; }
+.bg-Orange { background: #ff8c00; }
+.bg-White { background: #e0e0e0; color: #333; }
 
 /* MODAL */
 .modal {

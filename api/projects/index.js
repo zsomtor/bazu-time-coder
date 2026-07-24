@@ -1,12 +1,12 @@
 const { sql, ensureTables } = require('../../lib/db');
 
 const DEFAULT_BUTTONS = JSON.stringify([
+  { label: 'KEZDÉS', color: 'Purple' },
   { label: 'INTRO', color: 'Blue' },
-  { label: 'ERDEKES', color: 'Orange' },
-  { label: 'ROSSZ', color: 'Red' },
-  { label: 'THUMBNAIL', color: 'Purple' },
-  { label: 'BROLL', color: 'White' },
-  { label: 'BILLINGO', color: 'Pink' }
+  { label: 'BROLL', color: 'Pink' },
+  { label: 'SPONSOR', color: 'Yellow' },
+  { label: 'AD-SPOT', color: 'Yellow' },
+  { label: 'ROSSZ', color: 'Red' }
 ]);
 
 module.exports = async function handler(req, res) {
@@ -40,6 +40,7 @@ module.exports = async function handler(req, res) {
         await sql`
           INSERT INTO checklist_state (project_id, checklist_item_id, checked)
           SELECT ${project.id}, id, false FROM checklist_template
+          WHERE project_id IS NULL
         `;
       } catch (clErr) {
         console.warn('Checklist state population skipped:', clErr.message);

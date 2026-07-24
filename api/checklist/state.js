@@ -25,7 +25,8 @@ module.exports = async function handler(req, res) {
         FROM checklist_template ct
         LEFT JOIN checklist_state cs
           ON cs.checklist_item_id = ct.id AND cs.project_id = ${projectId}
-        ORDER BY ct.sort_order ASC, ct.id ASC
+        WHERE ct.project_id IS NULL OR ct.project_id = ${projectId}
+        ORDER BY (ct.project_id IS NOT NULL), ct.sort_order ASC, ct.id ASC
       `;
       return res.status(200).json(rows);
     }
