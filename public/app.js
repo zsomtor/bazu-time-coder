@@ -104,6 +104,7 @@
   const projectNameHeader = document.getElementById('project-name-header');
   const markerListEl = document.getElementById('marker-list');
   const streamdeckTargetBtn = document.getElementById('streamdeck-target-btn');
+  const streamdeckOffsetInput = document.getElementById('streamdeck-offset');
   const exportEdlBtn = document.getElementById('export-edl-btn');
   const exportPdfBtn = document.getElementById('export-pdf-btn');
   const editShortcutsBtn = document.getElementById('edit-shortcuts-btn');
@@ -365,6 +366,7 @@
     try {
       const state = await api('/projects/active');
       streamdeckTargetId = state.project_id || null;
+      streamdeckOffsetInput.value = state.offset ? String(state.offset) : '';
     } catch (err) {
       streamdeckTargetId = null;
     }
@@ -390,6 +392,25 @@
   }
 
   streamdeckTargetBtn.addEventListener('click', setStreamdeckTarget);
+
+  // Seconds added to every Stream Deck marker, to cancel out the delay between
+  // the key press and the request arriving. Saved globally, not per project.
+  async function saveStreamdeckOffset() {
+    const raw = streamdeckOffsetInput.value.trim();
+    const offset = raw === '' ? 0 : parseFloat(raw);
+    if (!Number.isFinite(offset) || Math.abs(offset) > 60) {
+      alert('Offset must be a number between -60 and 60 seconds.');
+      return;
+    }
+    try {
+      const state = await api('/projects/active', { method: 'POST', body: { offset } });
+      streamdeckOffsetInput.value = state.offset ? String(state.offset) : '';
+    } catch (err) {
+      alert('Failed to save Stream Deck offset: ' + err.message);
+    }
+  }
+
+  streamdeckOffsetInput.addEventListener('change', saveStreamdeckOffset);
 
   function closeProject() {
     stopTimecode();

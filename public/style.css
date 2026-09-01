@@ -182,6 +182,35 @@ button:hover { opacity: 0.85; }
   content: '🎛️ ';
 }
 
+.streamdeck-offset {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.7rem;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.streamdeck-offset input {
+  width: 58px;
+  padding: 7px 8px;
+  background: #111;
+  border: 1px solid #333;
+  border-radius: 6px;
+  color: #ccc;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.8rem;
+  text-align: right;
+}
+
+.streamdeck-offset input:focus {
+  outline: none;
+  border-color: #ff8c00;
+  color: #fff;
+}
+
 .btn-back {
   background: none;
   color: #888;

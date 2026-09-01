@@ -123,6 +123,8 @@ browser tab has to be focused.
 | `project_id` | no | Defaults to the current **Stream Deck target** project. |
 | `color` | no | Overrides the color looked up from the buttons. Falls back to `Orange` when no button matches. |
 | `comment` | no | Free-text comment. |
+| `tc` | no | Capture time as wall clock — `HH:MM:SS`, `HH:MM:SS.mmm` or `HH:MM:SS:FF`. Use it to timestamp on the caller's clock instead of the server's. |
+| `offset` | no | Seconds added to the capture time; negative moves the marker earlier. Overrides the stored default for this one request. |
 
 The target project is set explicitly in the web app: open a project and press
 **Set as Stream Deck target**. Only one project can be the target at a time,
@@ -134,13 +136,35 @@ https://<host>/api/quick-marker?name=INTRO
 https://<host>/api/quick-marker?name=ROSSZ&comment=retake
 ```
 
+### Latency compensation
+
+A key press does not reach the API instantly: the Stream Deck plugin has to
+launch the shortcut, and the request then has to cross the network and wake a
+possibly-cold function. Two things cancel that out, and they compose:
+
+- **Send `tc`.** The shortcut reads the Mac's own clock and puts it in the URL,
+  so everything after that moment — network, cold start, DB wake — stops
+  mattering. This removes the larger and more variable half of the delay.
+- **Set an offset.** The `offset` box next to the Stream Deck target button
+  stores a global value in seconds; `-1.5` puts every marker 1.5 s earlier.
+  Use it for the fixed part `tc` cannot see: press → shortcut launch.
+
+The response carries `latency_ms` (how late the request arrived relative to the
+`tc` it sent) and `offset_applied`, so you can measure rather than guess. To
+find the right offset: watch the app's on-screen clock, press the key at a
+round second, and compare that to the marker that lands. Repeat a few times and
+average — it is the press-to-shortcut delay you are measuring.
+
 ### macOS Stream Deck setup
 
 The Stream Deck app has no built-in "call a URL" action on macOS, so go through
 Shortcuts:
 
 1. **Shortcuts.app** → new shortcut per marker, one `Get Contents of URL` action,
-   method `GET`, URL as above. Name it e.g. `PD MARKER - INTRO`.
+   method `GET`, URL as above. Name it e.g. `PD MARKER - INTRO`. To timestamp on
+   the Mac's clock, put `Current Date` → `Format Date` (custom format
+   `HH:mm:ss.SSS`) before it and append `&tc=` plus that variable — the format
+   has no `+` or space in it, so it survives the URL unencoded.
 2. **Stream Deck** → install the *Mac Shortcuts Runner* plugin, drag one action
    per key, and pick the matching shortcut.
 3. Set the key title/color to match the marker.
@@ -223,5 +247,5 @@ their colors apart after import.
 **app_state**
 | Column | Type | Description |
 |---|---|---|
-| key | TEXT | Primary key. `active_project_id` holds the Stream Deck target. |
+| key | TEXT | Primary key. `active_project_id` holds the Stream Deck target; `quick_marker_offset` the latency offset in seconds. |
 | value | TEXT | Stored value. |
