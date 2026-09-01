@@ -1,4 +1,5 @@
 const { sql, ensureTables } = require('../../lib/db');
+const { setActiveProjectId } = require('../../lib/active-project');
 
 const DEFAULT_BUTTONS = JSON.stringify([
   { label: 'KEZDÉS', color: 'Purple' },
@@ -44,6 +45,18 @@ module.exports = async function handler(req, res) {
         `;
       } catch (clErr) {
         console.warn('Checklist state population skipped:', clErr.message);
+      }
+
+      // A newly created project is almost always the one about to be recorded,
+      // so point Stream Deck at it. Unlike opening a project, creating one is
+      // never incidental — you can't do it just to glance at something.
+      // Non-fatal: the project itself is created either way, and the UI reads
+      // the real target back, so a failure here shows as an unset target
+      // rather than a wrong one.
+      try {
+        await setActiveProjectId(project.id);
+      } catch (targetErr) {
+        console.warn('Stream Deck target not updated:', targetErr.message);
       }
 
       return res.status(201).json(project);

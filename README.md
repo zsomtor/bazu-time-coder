@@ -126,9 +126,12 @@ browser tab has to be focused.
 | `tc` | no | Capture time as wall clock — `HH:MM:SS`, `HH:MM:SS.mmm` or `HH:MM:SS:FF`. Use it to timestamp on the caller's clock instead of the server's. |
 | `offset` | no | Seconds added to the capture time; negative moves the marker earlier. Overrides the stored value for this one request. |
 
-The target project is set explicitly in the web app: open a project and press
-**Set as Stream Deck target**. Only one project can be the target at a time,
-and the project list badges it with 🎛️. The new marker is broadcast over
+Creating a project makes it the target automatically — a new project is
+practically always the recording about to start. Otherwise the target is set
+explicitly: open a project and press **Set as Stream Deck target**. Opening a
+project on its own never changes the target, so you can look at an old episode
+mid-recording without redirecting the buttons. Only one project can be the
+target at a time, and the project list badges it with 🎛️. The new marker is broadcast over
 Pusher, so open clients see it appear live.
 
 ```
