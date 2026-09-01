@@ -124,7 +124,7 @@ browser tab has to be focused.
 | `color` | no | Overrides the color looked up from the buttons. Falls back to `Orange` when no button matches. |
 | `comment` | no | Free-text comment. |
 | `tc` | no | Capture time as wall clock — `HH:MM:SS`, `HH:MM:SS.mmm` or `HH:MM:SS:FF`. Use it to timestamp on the caller's clock instead of the server's. |
-| `offset` | no | Seconds added to the capture time; negative moves the marker earlier. Overrides the stored default for this one request. |
+| `offset` | no | Seconds added to the capture time; negative moves the marker earlier. Overrides the stored value for this one request. |
 
 The target project is set explicitly in the web app: open a project and press
 **Set as Stream Deck target**. Only one project can be the target at a time,
@@ -147,7 +147,9 @@ possibly-cold function. Two things cancel that out, and they compose:
   mattering. This removes the larger and more variable half of the delay.
 - **Set an offset.** The `offset` box next to the Stream Deck target button
   stores a global value in seconds; `-1.5` puts every marker 1.5 s earlier.
-  Use it for the fixed part `tc` cannot see: press → shortcut launch.
+  Use it for the fixed part `tc` cannot see: press → shortcut launch. It
+  defaults to `-1` — a rough stand-in for the shortcut launch until you
+  measure your own setup. Store `0` to turn compensation off.
 
 The response carries `latency_ms` (how late the request arrived relative to the
 `tc` it sent) and `offset_applied`, so you can measure rather than guess. To

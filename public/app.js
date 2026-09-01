@@ -366,7 +366,7 @@
     try {
       const state = await api('/projects/active');
       streamdeckTargetId = state.project_id || null;
-      streamdeckOffsetInput.value = state.offset ? String(state.offset) : '';
+      streamdeckOffsetInput.value = Number.isFinite(state.offset) ? String(state.offset) : '';
     } catch (err) {
       streamdeckTargetId = null;
     }
@@ -404,7 +404,7 @@
     }
     try {
       const state = await api('/projects/active', { method: 'POST', body: { offset } });
-      streamdeckOffsetInput.value = state.offset ? String(state.offset) : '';
+      streamdeckOffsetInput.value = Number.isFinite(state.offset) ? String(state.offset) : '';
     } catch (err) {
       alert('Failed to save Stream Deck offset: ' + err.message);
     }
