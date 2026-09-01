@@ -1,4 +1,5 @@
 const { sql, ensureTables } = require('../../lib/db');
+const { handleActiveProject } = require('../../lib/active-project');
 
 module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -7,6 +8,11 @@ module.exports = async function handler(req, res) {
 
   try {
     await ensureTables();
+
+    // /api/projects/active is not a project id — it's the Stream Deck target.
+    if (id === 'active') {
+      return void (await handleActiveProject(req, res));
+    }
 
     if (req.method === 'GET') {
       const { rows } = await sql`SELECT * FROM projects WHERE id = ${id}`;

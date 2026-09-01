@@ -1,4 +1,5 @@
 const { sql, ensureTables } = require('../lib/db');
+const { getActiveProjectId } = require('../lib/active-project');
 const { getPusher } = require('../lib/pusher');
 
 // Wall-clock timecode in HH:MM:SS:FF @ 25fps, Europe/Budapest local time —
@@ -38,8 +39,7 @@ module.exports = async function handler(req, res) {
     }
 
     if (!project_id) {
-      const { rows: stateRows } = await sql`SELECT value FROM app_state WHERE key = 'active_project_id'`;
-      project_id = stateRows[0]?.value || null;
+      project_id = await getActiveProjectId();
       if (!project_id) {
         return res.status(400).json({ error: 'No Stream Deck target set. Open a project in the web app and press "Set as Stream Deck target".' });
       }

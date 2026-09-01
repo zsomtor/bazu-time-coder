@@ -88,9 +88,9 @@ npx vercel dev
 │   ├── setup.js               # Database table initialization
 │   ├── projects/
 │   │   ├── index.js           # GET list / POST create
-│   │   └── [id].js            # GET / PUT / DELETE single project
+│   │   └── [id].js            # GET / PUT / DELETE single project;
+│   │                          #   id 'active' = Stream Deck target (GET/POST)
 │   ├── quick-marker.js        # GET/POST one-shot marker (Stream Deck)
-│   ├── projects/active.js     # GET/POST the Stream Deck target project
 │   ├── markers/
 │   │   ├── index.js           # GET by project / POST create
 │   │   └── [id].js            # PUT / DELETE single marker
@@ -99,6 +99,7 @@ npx vercel dev
 │       └── pdf.js             # PDF report export
 ├── lib/
 │   ├── db.js                  # Database connection & table setup
+│   ├── active-project.js      # Stream Deck target read/write + route handler
 │   └── pusher.js              # Pusher server instance
 ├── public/
 │   ├── index.html             # Single-page app
@@ -146,6 +147,12 @@ Shortcuts:
 
 Because the URL carries no `project_id`, the keys never need reconfiguring
 between recordings — only the target project changes in the web app.
+
+> **Serverless function budget.** The Vercel Hobby plan allows 12 functions per
+> deployment and this project sits exactly at 12. Adding a file under `api/`
+> makes the build succeed and then fail at "Deploying outputs". Fold new
+> endpoints into an existing handler instead — that is why the Stream Deck
+> target lives in `lib/active-project.js`, served by `api/projects/[id].js`.
 
 ## EDL Format
 
