@@ -30,10 +30,19 @@ module.exports = async function handler(req, res) {
     await ensureTables();
 
     const src = req.method === 'GET' ? req.query : req.body;
-    const { project_id, name, color, comment } = src;
+    const { name, color, comment } = src;
+    let { project_id } = src;
 
-    if (!project_id || !name) {
-      return res.status(400).json({ error: 'project_id and name are required' });
+    if (!name) {
+      return res.status(400).json({ error: 'name is required' });
+    }
+
+    if (!project_id) {
+      const { rows: stateRows } = await sql`SELECT value FROM app_state WHERE key = 'active_project_id'`;
+      project_id = stateRows[0]?.value || null;
+      if (!project_id) {
+        return res.status(400).json({ error: 'No active project set. Open a project in the web app first.' });
+      }
     }
 
     let markerColor = color;

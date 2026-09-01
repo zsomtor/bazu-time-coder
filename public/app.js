@@ -279,6 +279,10 @@
 
       startTimecode();
       subscribeToPusher(id);
+
+      // Mark as the active project so external triggers (e.g. Stream Deck)
+      // know which project to drop markers into without needing the ID.
+      api('/projects/active', { method: 'POST', body: { project_id: id } }).catch(() => {});
     } catch (err) {
       alert('Failed to open project: ' + err.message);
     }
