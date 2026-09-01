@@ -89,6 +89,8 @@ npx vercel dev
 │   ├── projects/
 │   │   ├── index.js           # GET list / POST create
 │   │   └── [id].js            # GET / PUT / DELETE single project
+│   ├── quick-marker.js        # GET/POST one-shot marker (Stream Deck)
+│   ├── projects/active.js     # GET/POST the Stream Deck target project
 │   ├── markers/
 │   │   ├── index.js           # GET by project / POST create
 │   │   └── [id].js            # PUT / DELETE single marker
@@ -107,6 +109,44 @@ npx vercel dev
 └── .env.example               # Environment variable template
 ```
 
+## Stream Deck / external triggers
+
+`GET|POST /api/quick-marker` creates a single marker in one request. The
+timecode is computed **server-side** (Europe/Budapest wall clock, 25 fps), so
+the caller only needs to fire the URL — no client-side timecode math, and no
+browser tab has to be focused.
+
+| Param | Required | Notes |
+|---|---|---|
+| `name` | yes | Marker name, e.g. `INTRO`. Matched case-insensitively against the project's shortcut buttons to pick a color. |
+| `project_id` | no | Defaults to the current **Stream Deck target** project. |
+| `color` | no | Overrides the color looked up from the buttons. Falls back to `Orange` when no button matches. |
+| `comment` | no | Free-text comment. |
+
+The target project is set explicitly in the web app: open a project and press
+**Set as Stream Deck target**. Only one project can be the target at a time,
+and the project list badges it with 🎛️. The new marker is broadcast over
+Pusher, so open clients see it appear live.
+
+```
+https://<host>/api/quick-marker?name=INTRO
+https://<host>/api/quick-marker?name=ROSSZ&comment=retake
+```
+
+### macOS Stream Deck setup
+
+The Stream Deck app has no built-in "call a URL" action on macOS, so go through
+Shortcuts:
+
+1. **Shortcuts.app** → new shortcut per marker, one `Get Contents of URL` action,
+   method `GET`, URL as above. Name it e.g. `PD MARKER - INTRO`.
+2. **Stream Deck** → install the *Mac Shortcuts Runner* plugin, drag one action
+   per key, and pick the matching shortcut.
+3. Set the key title/color to match the marker.
+
+Because the URL carries no `project_id`, the keys never need reconfiguring
+between recordings — only the target project changes in the web app.
+
 ## EDL Format
 
 Exports markers in standard EDL format for DaVinci Resolve:
@@ -121,14 +161,18 @@ comment text |C:ResolveColorRed |M:MARKER NAME |D:0
 
 ### Color Mapping
 
-| App Color | DaVinci Resolve Color |
-|---|---|
-| Orange | ResolveColorRed |
-| Blue | ResolveColorBlue |
-| Purple | ResolveColorPurple |
-| White | ResolveColorBlue |
-| Pink | ResolveColorPink |
-| Red | ResolveColorRed |
+Every app color maps to a **distinct** DaVinci Resolve color, so markers keep
+their colors apart after import.
+
+| App Color | DaVinci Resolve Color | Default use |
+|---|---|---|
+| Pink | ResolveColorPink | BROLL |
+| Yellow | ResolveColorYellow | SPONSOR / AD-SPOT |
+| Blue | ResolveColorBlue | INTRO |
+| Red | ResolveColorRed | ROSSZ |
+| Purple | ResolveColorPurple | KEZDÉS |
+| Orange | ResolveColorSand | _legacy / backward-compat_ |
+| White | ResolveColorCream | _legacy / backward-compat_ |
 
 ## Database Schema
 
@@ -146,7 +190,31 @@ comment text |C:ResolveColorRed |M:MARKER NAME |D:0
 | id | SERIAL | Primary key |
 | project_id | INTEGER | Foreign key → projects.id |
 | timecode | TEXT | HH:MM:SS:FF format |
-| color | TEXT | Orange, Blue, Purple, White, Pink, Red |
+| color | TEXT | Pink, Yellow, Blue, Red, Purple (+ legacy Orange, White) |
 | name | TEXT | Marker label |
 | comment | TEXT | Free-text comment |
 | created_at | TIMESTAMP | Creation time |
+
+**checklist_template**
+| Column | Type | Description |
+|---|---|---|
+| id | SERIAL | Primary key |
+| project_id | INTEGER | `NULL` = shared base item (all projects); a project id = extra item for that project only |
+| label | TEXT | Item label |
+| drops_marker | BOOLEAN | If true, checking the item also drops a marker |
+| color | TEXT | Marker color |
+| sort_order | INTEGER | Display order within its scope |
+
+**checklist_state**
+| Column | Type | Description |
+|---|---|---|
+| id | SERIAL | Primary key |
+| project_id | INTEGER | Foreign key → projects.id |
+| checklist_item_id | INTEGER | Foreign key → checklist_template.id |
+| checked | BOOLEAN | Per-project checked state |
+
+**app_state**
+| Column | Type | Description |
+|---|---|---|
+| key | TEXT | Primary key. `active_project_id` holds the Stream Deck target. |
+| value | TEXT | Stored value. |

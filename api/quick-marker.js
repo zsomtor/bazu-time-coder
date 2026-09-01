@@ -41,18 +41,23 @@ module.exports = async function handler(req, res) {
       const { rows: stateRows } = await sql`SELECT value FROM app_state WHERE key = 'active_project_id'`;
       project_id = stateRows[0]?.value || null;
       if (!project_id) {
-        return res.status(400).json({ error: 'No active project set. Open a project in the web app first.' });
+        return res.status(400).json({ error: 'No Stream Deck target set. Open a project in the web app and press "Set as Stream Deck target".' });
       }
     }
 
+    // Always resolve the project first: the target can be stale (project
+    // deleted since it was set), and a bare INSERT would fail the foreign key
+    // with an opaque 500 instead of telling the caller what's wrong.
+    const { rows: projectRows } = await sql`SELECT id, buttons FROM projects WHERE id = ${project_id}`;
+    if (projectRows.length === 0) {
+      return res.status(404).json({ error: `Project ${project_id} not found. Set a Stream Deck target in the web app.` });
+    }
+    project_id = projectRows[0].id;
+
     let markerColor = color;
     if (!markerColor) {
-      const { rows: projectRows } = await sql`SELECT buttons FROM projects WHERE id = ${project_id}`;
-      if (projectRows.length === 0) {
-        return res.status(404).json({ error: 'Project not found' });
-      }
       const buttons = projectRows[0].buttons || [];
-      const match = buttons.find((b) => b.label.toLowerCase() === String(name).toLowerCase());
+      const match = buttons.find((b) => String(b.label || '').toLowerCase() === String(name).toLowerCase());
       markerColor = match ? match.color : 'Orange';
     }
 
