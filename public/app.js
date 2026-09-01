@@ -18,6 +18,7 @@
   let checklistItems = []; // template items + per-project checked state
   let checklistTemplate = []; // raw template for settings editor
   let activeFilter = null; // active marker filter label (null = show all)
+  let streamdeckTargetId = null; // project_id currently receiving Stream Deck markers
 
   // --- DOM refs ---
   const projectListView = document.getElementById('project-list-view');
@@ -37,6 +38,7 @@
   const repeatLastBtn = document.getElementById('repeat-last-btn');
   const projectNameHeader = document.getElementById('project-name-header');
   const markerListEl = document.getElementById('marker-list');
+  const streamdeckTargetBtn = document.getElementById('streamdeck-target-btn');
   const exportEdlBtn = document.getElementById('export-edl-btn');
   const exportPdfBtn = document.getElementById('export-pdf-btn');
   const editShortcutsBtn = document.getElementById('edit-shortcuts-btn');
@@ -189,15 +191,18 @@
   // --- Projects ---
   async function loadProjects() {
     try {
-      const projects = await api('/projects');
-      renderProjectList(projects);
+      const [projects, state] = await Promise.all([
+        api('/projects'),
+        api('/projects/active').catch(() => ({ project_id: null }))
+      ]);
+      renderProjectList(projects, state.project_id);
     } catch (err) {
       console.error('Failed to load projects:', err);
       projectListEl.innerHTML = '<div class="empty-state">Failed to load projects. Click "Setup DB" first if this is a fresh deployment.</div>';
     }
   }
 
-  function renderProjectList(projects) {
+  function renderProjectList(projects, activeProjectId) {
     if (projects.length === 0) {
       projectListEl.innerHTML = '<div class="empty-state">No projects yet. Create one above.</div>';
       return;
@@ -205,8 +210,9 @@
 
     projectListEl.innerHTML = projects.map(p => {
       const date = new Date(p.created_at).toLocaleDateString('en-GB');
+      const isTarget = p.id === activeProjectId;
       return `
-        <div class="project-item" data-id="${p.id}">
+        <div class="project-item${isTarget ? ' is-streamdeck-target' : ''}" data-id="${p.id}">
           <div>
             <div class="project-name">${escapeHtml(p.name)}</div>
             <div class="project-date">${date}</div>
@@ -279,14 +285,42 @@
 
       startTimecode();
       subscribeToPusher(id);
-
-      // Mark as the active project so external triggers (e.g. Stream Deck)
-      // know which project to drop markers into without needing the ID.
-      api('/projects/active', { method: 'POST', body: { project_id: id } }).catch(() => {});
+      refreshStreamdeckTarget();
     } catch (err) {
       alert('Failed to open project: ' + err.message);
     }
   }
+
+  // --- Stream Deck target ---
+  async function refreshStreamdeckTarget() {
+    try {
+      const state = await api('/projects/active');
+      streamdeckTargetId = state.project_id || null;
+    } catch (err) {
+      streamdeckTargetId = null;
+    }
+    renderStreamdeckTargetBtn();
+  }
+
+  function renderStreamdeckTargetBtn() {
+    if (!currentProject) return;
+    const isActive = streamdeckTargetId === currentProject.id;
+    streamdeckTargetBtn.textContent = isActive ? '🎛️ Stream Deck target' : 'Set as Stream Deck target';
+    streamdeckTargetBtn.classList.toggle('active', isActive);
+  }
+
+  async function setStreamdeckTarget() {
+    if (!currentProject) return;
+    try {
+      await api('/projects/active', { method: 'POST', body: { project_id: currentProject.id } });
+      streamdeckTargetId = currentProject.id;
+      renderStreamdeckTargetBtn();
+    } catch (err) {
+      alert('Failed to set Stream Deck target: ' + err.message);
+    }
+  }
+
+  streamdeckTargetBtn.addEventListener('click', setStreamdeckTarget);
 
   function closeProject() {
     stopTimecode();

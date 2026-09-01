@@ -159,6 +159,29 @@ button:hover { opacity: 0.85; }
   color: #ff8c00;
 }
 
+.btn-streamdeck {
+  background: #222;
+  color: #666;
+  padding: 8px 16px;
+  font-size: 0.8rem;
+  border: 1px solid #333;
+}
+
+.btn-streamdeck:hover {
+  border-color: #555;
+  color: #aaa;
+}
+
+.btn-streamdeck.active {
+  color: #ff8c00;
+  border-color: #ff8c00;
+  background: rgba(255, 140, 0, 0.1);
+}
+
+#project-list .project-item.is-streamdeck-target .project-name::before {
+  content: '🎛️ ';
+}
+
 .btn-back {
   background: none;
   color: #888;
