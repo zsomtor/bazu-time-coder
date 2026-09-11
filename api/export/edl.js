@@ -72,11 +72,16 @@ module.exports = async function handler(req, res) {
     let edl = `TITLE: ${project.name}\n`;
     edl += `FCM: NON-DROP FRAME\n\n`;
 
-    // `markerFormat` lets us A/B the two representations in Resolve without a
-    // redeploy: 'both' (default), 'loc' (LOC lines only), 'tag' (|C: only).
-    const markerFormat = (req.query.markerFormat || 'both').toLowerCase();
-    const withLoc = markerFormat !== 'tag';
-    const withTag = markerFormat !== 'loc';
+    // Resolve puts every `*` comment line verbatim into the marker's Notes
+    // field, but silently consumes the |C:/|M:/|D: tags from whatever line
+    // they sit on. So the tags go FIRST on an asterisk-free line and the note
+    // follows them: the line starts with `|`, which can never be mistaken for
+    // an EDL event record (the original bug, hit by notes like "2. pont"),
+    // and the Notes field ends up holding just the clean note text.
+    //
+    // `markerFormat` keeps the alternatives reachable for testing in Resolve
+    // without a redeploy: 'tagfirst' (default), 'tag', 'loc', 'both', 'legacy'.
+    const markerFormat = (req.query.markerFormat || 'tagfirst').toLowerCase();
 
     markers.forEach((marker, index) => {
       const num = String(index + 1).padStart(3, '0');
@@ -85,13 +90,26 @@ module.exports = async function handler(req, res) {
       const locColor = LOC_COLOR[marker.color] || 'RED';
       const note = sanitize(marker.comment);
       const markerName = sanitize(marker.name);
-      // Resolve shows the LOC text as the marker name; keep the category first
-      // so it stays readable, then the note.
-      const locText = [markerName, note].filter(Boolean).join(': ') || 'Marker';
+      const tags = `|C:${resolveColor} |M:${markerName} |D:0`;
 
       edl += `${num}  001      V     C        ${tc} ${tc} ${tc} ${tc}\n`;
-      if (withLoc) edl += `* LOC: ${tc} ${locColor} ${locText}\n`;
-      if (withTag) edl += `* |C:${resolveColor} |M:${markerName} |D:0\n`;
+
+      if (markerFormat === 'loc' || markerFormat === 'both') {
+        const locText = [markerName, note].filter(Boolean).join(': ') || 'Marker';
+        edl += `* LOC: ${tc} ${locColor} ${locText}\n`;
+      }
+
+      if (markerFormat === 'loc') {
+        // nothing else; LOC carries name and colour on its own
+      } else if (markerFormat === 'tag' || markerFormat === 'both') {
+        if (note) edl += `* ${note}\n`;
+        edl += `* ${tags}\n`;
+      } else if (markerFormat === 'legacy') {
+        edl += `${[note, tags].filter(Boolean).join(' ')}\n`;
+      } else {
+        edl += `${[tags, note].filter(Boolean).join(' ')}\n`;
+      }
+
       edl += `\n`;
     });
 
