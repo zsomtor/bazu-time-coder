@@ -5,24 +5,17 @@ const { sql, ensureTables } = require('../../lib/db');
 // palette color; Orange and White are kept only for backward compatibility
 // with old markers and are given their own distinct colors too.
 //
-// These are plain color names for the standard CMX3600 "* LOC:" locator
-// comment (see below) — NOT the older "|C:ResolveColorX |M: |D:" tag format
-// this file used to emit. That format put the marker's free-text note
-// directly in front of the tags with no delimiter marking the line as a
-// comment, and DaVinci's EDL parser would silently drop or corrupt markers
-// depending on the note text (e.g. notes starting with a digit, like
-// "2. pont", read enough like a new event line to desync the parser).
-// "* LOC:" is a single self-contained comment line per marker, independent
-// of any edit event, so there's nothing for stray note text to collide with.
+// These match DaVinci Resolve's own internal marker color names — this part
+// has worked reliably across many earlier projects, so it's kept as-is.
 const COLOR_MAP = {
-  'Pink': 'PINK',
-  'Yellow': 'YELLOW',
-  'Blue': 'BLUE',
-  'Red': 'RED',
-  'Purple': 'PURPLE',
+  'Pink': 'ResolveColorPink',
+  'Yellow': 'ResolveColorYellow',
+  'Blue': 'ResolveColorBlue',
+  'Red': 'ResolveColorRed',
+  'Purple': 'ResolveColorPurple',
   // backward-compat (legacy markers)
-  'Orange': 'ORANGE',
-  'White': 'WHITE'
+  'Orange': 'ResolveColorSand',
+  'White': 'ResolveColorCream'
 };
 
 module.exports = async function handler(req, res) {
@@ -59,13 +52,21 @@ module.exports = async function handler(req, res) {
     markers.forEach((marker, index) => {
       const num = String(index + 1).padStart(3, '0');
       const tc = marker.timecode;
-      const color = COLOR_MAP[marker.color] || 'RED';
+      const resolveColor = COLOR_MAP[marker.color] || 'ResolveColorRed';
       const name = clean(marker.name);
       const comment = clean(marker.comment);
-      const text = name && comment ? `${name}: ${comment}` : (name || comment);
 
       edl += `${num}  001      V     C        ${tc} ${tc} ${tc} ${tc}\n`;
-      edl += `* LOC: ${tc} ${color}   ${text}\n\n`;
+      // The free-text note goes on its own "* " comment line, never glued
+      // in front of the |C:/|M:/|D: tags: a note that happens to start with
+      // a digit (e.g. "2. pont") can otherwise read enough like a new EDL
+      // event to desync DaVinci's parser and corrupt or drop the marker.
+      // Both lines are prefixed with "*" so nothing here can ever be
+      // mistaken for an event record regardless of what the note contains.
+      if (comment && comment !== name) {
+        edl += `* ${comment}\n`;
+      }
+      edl += `* |C:${resolveColor} |M:${name} |D:0\n\n`;
     });
 
     const filename = `${project.name.replace(/[^a-zA-Z0-9_-]/g, '_')}.edl`;
