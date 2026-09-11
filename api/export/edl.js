@@ -1,12 +1,29 @@
 const { sql, ensureTables } = require('../../lib/db');
 
-// Each app color maps to a DISTINCT DaVinci Resolve marker color so markers
-// don't collapse into the same color after import. Yellow is the new
-// palette color; Orange and White are kept only for backward compatibility
-// with old markers and are given their own distinct colors too.
+// Each app color maps to a DISTINCT DaVinci Resolve color so markers don't
+// collapse into the same color after import. Two representations are written
+// for every marker, because Resolve's EDL importer is picky and undocumented:
 //
-// These match DaVinci Resolve's own internal marker color names — this part
-// has worked reliably across many earlier projects, so it's kept as-is.
+//   * LOC: <tc> <COLOR> <name>        -> position + name (Resolve's own export
+//                                        format; proven to place markers right)
+//   * |C:ResolveColorX |M:.. |D:0     -> the tag form that has historically
+//                                        carried the color correctly
+//
+// Both live on their own `*` comment lines. That is the critical part: the old
+// exporter put the free-text note at the START of a line, and when a note began
+// with a digit ("2. pont") Resolve mistook it for a new EDL event and either
+// dropped the marker or stripped its name/color.
+const LOC_COLOR = {
+  'Pink': 'PINK',
+  'Yellow': 'YELLOW',
+  'Blue': 'BLUE',
+  'Red': 'RED',
+  'Purple': 'PURPLE',
+  // backward-compat (legacy markers)
+  'Orange': 'SAND',
+  'White': 'CREAM'
+};
+
 const COLOR_MAP = {
   'Pink': 'ResolveColorPink',
   'Yellow': 'ResolveColorYellow',
@@ -17,6 +34,16 @@ const COLOR_MAP = {
   'Orange': 'ResolveColorSand',
   'White': 'ResolveColorCream'
 };
+
+// Comment text must never break the EDL grammar: single line, no leading pipe
+// or asterisk, no collapsed-into-an-event-number surprises.
+function sanitize(text) {
+  return String(text || '')
+    .replace(/[\r\n]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .replace(/^[*|\s]+/, '')
+    .trim();
+}
 
 module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -45,28 +72,27 @@ module.exports = async function handler(req, res) {
     let edl = `TITLE: ${project.name}\n`;
     edl += `FCM: NON-DROP FRAME\n\n`;
 
-    // Strip newlines/carriage returns from free text so a marker can never
-    // spill across lines and be mistaken for a new record.
-    const clean = (s) => String(s || '').replace(/[\r\n]+/g, ' ').trim();
+    // `markerFormat` lets us A/B the two representations in Resolve without a
+    // redeploy: 'both' (default), 'loc' (LOC lines only), 'tag' (|C: only).
+    const markerFormat = (req.query.markerFormat || 'both').toLowerCase();
+    const withLoc = markerFormat !== 'tag';
+    const withTag = markerFormat !== 'loc';
 
     markers.forEach((marker, index) => {
       const num = String(index + 1).padStart(3, '0');
       const tc = marker.timecode;
       const resolveColor = COLOR_MAP[marker.color] || 'ResolveColorRed';
-      const name = clean(marker.name);
-      const comment = clean(marker.comment);
+      const locColor = LOC_COLOR[marker.color] || 'RED';
+      const note = sanitize(marker.comment);
+      const markerName = sanitize(marker.name);
+      // Resolve shows the LOC text as the marker name; keep the category first
+      // so it stays readable, then the note.
+      const locText = [markerName, note].filter(Boolean).join(': ') || 'Marker';
 
       edl += `${num}  001      V     C        ${tc} ${tc} ${tc} ${tc}\n`;
-      // The free-text note goes on its own "* " comment line, never glued
-      // in front of the |C:/|M:/|D: tags: a note that happens to start with
-      // a digit (e.g. "2. pont") can otherwise read enough like a new EDL
-      // event to desync DaVinci's parser and corrupt or drop the marker.
-      // Both lines are prefixed with "*" so nothing here can ever be
-      // mistaken for an event record regardless of what the note contains.
-      if (comment && comment !== name) {
-        edl += `* ${comment}\n`;
-      }
-      edl += `* |C:${resolveColor} |M:${name} |D:0\n\n`;
+      if (withLoc) edl += `* LOC: ${tc} ${locColor} ${locText}\n`;
+      if (withTag) edl += `* |C:${resolveColor} |M:${markerName} |D:0\n`;
+      edl += `\n`;
     });
 
     const filename = `${project.name.replace(/[^a-zA-Z0-9_-]/g, '_')}.edl`;
