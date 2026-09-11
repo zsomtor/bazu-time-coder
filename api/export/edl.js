@@ -1,18 +1,28 @@
 const { sql, ensureTables } = require('../../lib/db');
 
-// Each app color maps to a DISTINCT DaVinci Resolve color so markers don't
-// collapse into the same color after import. Yellow is the new palette color;
-// Orange and White are kept only for backward compatibility with old markers
-// and are given their own distinct Resolve colors too.
+// Each app color maps to a DISTINCT DaVinci Resolve marker color so markers
+// don't collapse into the same color after import. Yellow is the new
+// palette color; Orange and White are kept only for backward compatibility
+// with old markers and are given their own distinct colors too.
+//
+// These are plain color names for the standard CMX3600 "* LOC:" locator
+// comment (see below) — NOT the older "|C:ResolveColorX |M: |D:" tag format
+// this file used to emit. That format put the marker's free-text note
+// directly in front of the tags with no delimiter marking the line as a
+// comment, and DaVinci's EDL parser would silently drop or corrupt markers
+// depending on the note text (e.g. notes starting with a digit, like
+// "2. pont", read enough like a new event line to desync the parser).
+// "* LOC:" is a single self-contained comment line per marker, independent
+// of any edit event, so there's nothing for stray note text to collide with.
 const COLOR_MAP = {
-  'Pink': 'ResolveColorPink',
-  'Yellow': 'ResolveColorYellow',
-  'Blue': 'ResolveColorBlue',
-  'Red': 'ResolveColorRed',
-  'Purple': 'ResolveColorPurple',
+  'Pink': 'PINK',
+  'Yellow': 'YELLOW',
+  'Blue': 'BLUE',
+  'Red': 'RED',
+  'Purple': 'PURPLE',
   // backward-compat (legacy markers)
-  'Orange': 'ResolveColorSand',
-  'White': 'ResolveColorCream'
+  'Orange': 'ORANGE',
+  'White': 'WHITE'
 };
 
 module.exports = async function handler(req, res) {
@@ -42,15 +52,20 @@ module.exports = async function handler(req, res) {
     let edl = `TITLE: ${project.name}\n`;
     edl += `FCM: NON-DROP FRAME\n\n`;
 
+    // Strip newlines/carriage returns from free text so a marker can never
+    // spill across lines and be mistaken for a new record.
+    const clean = (s) => String(s || '').replace(/[\r\n]+/g, ' ').trim();
+
     markers.forEach((marker, index) => {
       const num = String(index + 1).padStart(3, '0');
       const tc = marker.timecode;
-      const resolveColor = COLOR_MAP[marker.color] || 'ResolveColorRed';
-      const comment = marker.comment || marker.name || '';
-      const markerName = marker.name || '';
+      const color = COLOR_MAP[marker.color] || 'RED';
+      const name = clean(marker.name);
+      const comment = clean(marker.comment);
+      const text = name && comment ? `${name}: ${comment}` : (name || comment);
 
       edl += `${num}  001      V     C        ${tc} ${tc} ${tc} ${tc}\n`;
-      edl += `${comment} |C:${resolveColor} |M:${markerName} |D:0\n\n`;
+      edl += `* LOC: ${tc} ${color}   ${text}\n\n`;
     });
 
     const filename = `${project.name.replace(/[^a-zA-Z0-9_-]/g, '_')}.edl`;

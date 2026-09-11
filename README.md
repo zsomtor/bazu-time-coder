@@ -185,30 +185,36 @@ between recordings — only the target project changes in the web app.
 
 ## EDL Format
 
-Exports markers in standard EDL format for DaVinci Resolve:
+Exports markers in standard EDL format for DaVinci Resolve, using the
+CMX3600 `* LOC:` locator comment for each marker — a self-contained comment
+line keyed by its own timecode, independent of the dummy zero-duration cut
+event above it. (An earlier version packed a proprietary
+`comment |C:... |M:... |D:...` tag onto the same line as the free-text note,
+with nothing marking the line as a comment; DaVinci's parser would silently
+drop or corrupt markers depending on the note text. `* LOC:` avoids that.)
 
 ```
 TITLE: Project Name
 FCM: NON-DROP FRAME
 
 001  001      V     C        01:23:45:12 01:23:45:12 01:23:45:12 01:23:45:12
-comment text |C:ResolveColorRed |M:MARKER NAME |D:0
+* LOC: 01:23:45:12 RED   MARKER NAME: comment text
 ```
 
 ### Color Mapping
 
-Every app color maps to a **distinct** DaVinci Resolve color, so markers keep
-their colors apart after import.
+Every app color maps to a **distinct** DaVinci Resolve marker color, so
+markers keep their colors apart after import.
 
 | App Color | DaVinci Resolve Color | Default use |
 |---|---|---|
-| Pink | ResolveColorPink | BROLL |
-| Yellow | ResolveColorYellow | SPONSOR / AD-SPOT |
-| Blue | ResolveColorBlue | INTRO |
-| Red | ResolveColorRed | ROSSZ |
-| Purple | ResolveColorPurple | KEZDÉS |
-| Orange | ResolveColorSand | _legacy / backward-compat_ |
-| White | ResolveColorCream | _legacy / backward-compat_ |
+| Pink | PINK | BROLL |
+| Yellow | YELLOW | SPONSOR / AD-SPOT |
+| Blue | BLUE | INTRO |
+| Red | RED | ROSSZ |
+| Purple | PURPLE | KEZDÉS |
+| Orange | ORANGE | _legacy / backward-compat_ |
+| White | WHITE | _legacy / backward-compat_ |
 
 ## Database Schema
 
